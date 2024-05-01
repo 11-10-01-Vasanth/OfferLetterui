@@ -1,0 +1,176 @@
+<template>
+  <q-page class="flex flex-center">
+    <div class="q-pa-md" style="max-width: 400px">
+      <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
+        <q-input
+          filled
+          v-model="name"
+          label="Your name *"
+          hint="Name and surname"
+          lazy-rules
+          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+        />
+
+        <q-input
+          filled
+          v-model="email"
+          type="email"
+          label="Your email *"
+          hint="Email"
+          lazy-rules
+          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+        />
+
+        <q-input
+          filled
+          v-model="role"
+          type="text"
+          label="Your role *"
+          hint="Role"
+          lazy-rules
+          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+        />
+
+        <q-input
+          filled
+          v-model="company"
+          type="text"
+          label="Company name *"
+          hint="Company name"
+          lazy-rules
+          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+        />
+
+        <q-input
+          filled
+          v-model="joindate"
+          type="date"
+          label="Your joining date *"
+          hint="Joining data"
+          lazy-rules
+          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+        />
+
+        <div>
+          <q-btn label="Submit" type="submit" color="primary" />
+          <q-btn
+            label="Reset"
+            type="reset"
+            color="primary"
+            flat
+            class="q-ml-sm"
+          />
+        </div>
+      </q-form>
+    </div>
+
+    <div style="max-width: 600px; margin: 20px auto" v-if="showOffer">
+      <div style="padding: 10px 20px; background-color: #f5f5f5">
+        <div style="font-size: 1.5rem">Offer Letter</div>
+        <q-btn
+          color="primary"
+          label="Download PDF"
+          style="margin-left: auto"
+          @click="downloadPDF"
+        />
+        <!-- &nbsp;&nbsp;&nbsp;&nbsp;
+        <q-btn
+          color="primary"
+          label="Send Email"
+          style="margin-left: auto"
+          @click="downloadPDF"
+        /> -->
+      </div>
+      <div id="offer-letter">
+        <div style="padding: 20px">
+          <div style="font-size: 1.2rem; font-weight: bold">
+            Recipient Details:
+          </div>
+          <div>Name: {{ name }}</div>
+          <div>Email: {{ email }}</div>
+          <div>Date: {{ issueDate }}</div>
+        </div>
+        <div style="padding: 20px">
+          <div style="font-size: 1.2rem; font-weight: bold">
+            Dear {{ name }},
+          </div>
+          <p>
+            We are pleased to offer you the position of {{ role }} at
+            {{ company }}. Your start date will be {{ joindate }}.
+          </p>
+        </div>
+      </div>
+    </div>
+  </q-page>
+</template>
+
+<script>
+import axios from "axios";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+export default {
+  data() {
+    return {
+      name: null,
+      email: null,
+      role: null,
+      joindate: null,
+      issueDate: new Date().toLocaleDateString(),
+      company: null,
+      showOffer: false,
+    };
+  },
+  methods: {
+    onSubmit() {
+      const data = {
+        name: this.name,
+        email: this.email,
+        role: this.role,
+        joindate: this.joindate,
+        company: this.company,
+      };
+      console.log(data);
+      this.showOffer = true;
+
+      axios
+        .post("http://localhost:2001/employee/offer", data)
+        .then((response) => console.log(response))
+        .catch((error) => console.log(error));
+    },
+
+    onReset() {
+      this.name = null;
+      this.email = null;
+      this.role = null;
+      this.joindate = null;
+      this.company = null;
+    },
+    downloadPDF() {
+      const pdf = new jsPDF();
+      const offerLetter = document.getElementById("offer-letter");
+
+      html2canvas(offerLetter).then((canvas) => {
+        const imageData = canvas.toDataURL("image/png");
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = imgWidth * 1.414; // A4 ratio
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imageData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imageData, "PNG", 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+
+        pdf.save("offer_letter.pdf");
+        console.log(pdf);
+      });
+    },
+  },
+};
+</script>
