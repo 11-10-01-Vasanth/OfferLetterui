@@ -8,7 +8,7 @@
           label="Your name *"
           hint="Name and surname"
           lazy-rules
-          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+          :rules="[(val) => (val && val.length > 0) || 'Please type name']"
         />
 
         <q-input
@@ -18,10 +18,10 @@
           label="Your email *"
           hint="Email"
           lazy-rules
-          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+          :rules="[(val) => (val && val.length > 0) || 'Please type email']"
         />
 
-        <q-input
+        <!-- <q-input
           filled
           v-model="role"
           type="text"
@@ -29,6 +29,21 @@
           hint="Role"
           lazy-rules
           :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+        /> -->
+
+        <q-select
+          filled
+          color="green-8"
+          v-model="role"
+          :options="position"
+          label="Your role *"
+          hint="Role"
+          emit-value
+          map-options
+          clearable
+          required
+          lazy-rules
+          :rules="[(val) => (val && val.length > 0) || 'Please select role']"
         />
 
         <q-input
@@ -144,7 +159,7 @@
           <q-btn
             flat
             color="primary"
-            label="Download"
+            label="Download and send"
             icon="download"
             @click="downloadPDF"
           />
@@ -166,14 +181,19 @@ export default {
       location: "Madurai",
       email: null,
       role: null,
+      position: [
+        { label: "Junior Developer", value: "JuniorDeveloper" },
+        { label: "Full Stack", value: "Fullstack" },
+        { label: "Software Developer", value: "SoftwareDeveloper" },
+      ],
       joindate: null,
       issueDate: new Date().toLocaleDateString(),
       company: "abc",
       file: null,
       pdfFile: null,
       list: ["invert(70%)"],
-      // dialog: false,
-      dialog: true,
+      dialog: false,
+      // dialog: true,
       backdropFilter: null,
     };
   },
@@ -194,33 +214,7 @@ export default {
         .post("http://localhost:2001/employee/offer", data)
         .then((response) => console.log(response))
         .catch((error) => console.log(error));
-
-      this.sentMail();
       // alert("Mail sent successfully to " + this.email);
-    },
-
-    sentMail() {
-      const subject = "Offer Letter";
-      const message = "Congratulations !!!";
-      const formData = new FormData();
-      formData.append(
-        "file",
-        new Blob([this.pdfFile], { type: "application/pdf" }),
-        "Offer_Letter.pdf"
-      );
-      formData.append("email", this.email);
-      formData.append("subject", subject);
-      formData.append("message", message);
-
-      console.log(formData);
-      axios
-        .post("http://localhost:2001/employee/sendmail", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        .then((res) => console.log(res))
-        .catch((err) => console.log(err));
     },
 
     onReset() {
@@ -233,9 +227,26 @@ export default {
     downloadPDF() {
       const pdf = new jsPDF();
       const offerLetter = document.getElementById("offer-letter");
+      const subject = "Offer Letter";
+      const message = "Congratulations !!!";
 
       html2canvas(offerLetter).then((canvas) => {
         var imageData = canvas.toDataURL("image/png");
+        const formData = new FormData();
+        formData.append("email", this.email);
+        formData.append("imageData", imageData);
+        formData.append("subject", subject);
+        formData.append("message", message);
+
+        axios
+          .post("http://localhost:2001/employee/sendmail", formData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          })
+          .then(() => alert("Mail sent successfully !!!"))
+          .catch((err) => console.log(err));
+
         const imgWidth = 210; // A4 width in mm
         const pageHeight = imgWidth * 1.414; // A4 ratio
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
